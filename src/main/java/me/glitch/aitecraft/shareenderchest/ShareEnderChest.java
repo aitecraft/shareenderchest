@@ -52,16 +52,14 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 	public void onServerStarted(MinecraftServer server) {
 		File inventoryFile = getFile(server);
 		if (inventoryFile.exists()) {
-			try {
-				FileInputStream inventoryFileInputStream = new FileInputStream(inventoryFile);
-				DataInputStream inventoryFileDataInput = new DataInputStream(inventoryFileInputStream);
-				NbtCompound nbt = NbtIo.readCompound(inventoryFileDataInput);
-				inventoryFileInputStream.close();
+			try (FileInputStream inventoryFileInputStream = new FileInputStream(inventoryFile);
+				 DataInputStream inventoryFileDataInput = new DataInputStream(inventoryFileInputStream)){
 
+				NbtCompound nbt = NbtIo.readCompound(inventoryFileDataInput);
 				DefaultedList<ItemStack> inventoryItemStacks = DefaultedList.ofSize(54, ItemStack.EMPTY);
 				Inventories.readNbt(nbt, inventoryItemStacks);
-
 				sharedInventory = new SharedInventory(inventoryItemStacks);
+
 			} catch (Exception e) {
 				System.out.println("[ShareEnderChest] Error while loading inventory: " + e);
 			}
@@ -75,12 +73,10 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 		NbtCompound nbt = new NbtCompound();
 		DefaultedList<ItemStack> inventoryItemStacks = DefaultedList.ofSize(54, ItemStack.EMPTY);
 		Inventories.writeNbt(nbt, sharedInventory.getList(inventoryItemStacks));
-		try {
+		try (FileOutputStream inventoryFileOutputStream = new FileOutputStream(inventoryFile);
+			 DataOutputStream inventoryFileDataOutput = new DataOutputStream(inventoryFileOutputStream)) {
 			inventoryFile.createNewFile();
-			FileOutputStream inventoryFileOutputStream = new FileOutputStream(inventoryFile);
-			DataOutputStream inventoryFileDataOutput = new DataOutputStream(inventoryFileOutputStream);
 			NbtIo.writeCompressed(nbt, inventoryFileDataOutput);
-			inventoryFileOutputStream.close();
 		} catch (Exception e) {
 			System.out.println("[ShareEnderChest] Error while saving inventory: " + e);
 		}
