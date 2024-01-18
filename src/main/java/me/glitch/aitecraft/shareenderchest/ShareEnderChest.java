@@ -55,12 +55,12 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 			try {
 				FileInputStream inventoryFileInputStream = new FileInputStream(inventoryFile);
 				DataInputStream inventoryFileDataInput = new DataInputStream(inventoryFileInputStream);
-				NbtCompound nbt = NbtIo.readCompressed(inventoryFileDataInput);
+				NbtCompound nbt = NbtIo.readCompound(inventoryFileDataInput);
 				inventoryFileInputStream.close();
-				
+
 				DefaultedList<ItemStack> inventoryItemStacks = DefaultedList.ofSize(54, ItemStack.EMPTY);
 				Inventories.readNbt(nbt, inventoryItemStacks);
-				
+
 				sharedInventory = new SharedInventory(inventoryItemStacks);
 			} catch (Exception e) {
 				System.out.println("[ShareEnderChest] Error while loading inventory: " + e);
@@ -140,7 +140,7 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 			(server, player, handler, buf, sender) -> server.execute(() -> {
 				if (player.currentScreenHandler != player.playerScreenHandler) {
 					player.networkHandler.sendPacket(new CloseScreenS2CPacket(player.currentScreenHandler.syncId));
-					player.closeScreenHandler();
+					player.closeHandledScreen();
 				}
 				openSharedEnderChest(player);
 			})
@@ -154,10 +154,8 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
     }
 
 	public static void openSharedEnderChest(PlayerEntity player) {
-		player.openHandledScreen(new SimpleNamedScreenHandlerFactory((int_1, playerInventory, playerEntity) -> {
-			return new GenericContainerScreenHandler(ScreenHandlerType.GENERIC_9X6, int_1, playerInventory, sharedInventory,
-					6);
-		}, Text.of("Shared Ender Chest")));
+		player.openHandledScreen(new SimpleNamedScreenHandlerFactory((int_1, playerInventory, playerEntity) -> new GenericContainerScreenHandler(ScreenHandlerType.GENERIC_9X6, int_1, playerInventory, sharedInventory,
+                6), Text.of("Shared Ender Chest")));
 	}
 
 	public static boolean isEnderChest(ItemStack stack) {
