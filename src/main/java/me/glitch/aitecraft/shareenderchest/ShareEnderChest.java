@@ -28,6 +28,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.ScreenHandlerType;
@@ -54,12 +55,10 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 		if (inventoryFile.exists()) {
 			try (FileInputStream inventoryFileInputStream = new FileInputStream(inventoryFile);
 				 DataInputStream inventoryFileDataInput = new DataInputStream(inventoryFileInputStream)){
-
-				NbtCompound nbt = NbtIo.readCompound(inventoryFileDataInput);
+				NbtCompound nbt = NbtIo.readCompressed(inventoryFileDataInput, NbtSizeTracker.ofUnlimitedBytes());
 				DefaultedList<ItemStack> inventoryItemStacks = DefaultedList.ofSize(54, ItemStack.EMPTY);
 				Inventories.readNbt(nbt, inventoryItemStacks);
 				sharedInventory = new SharedInventory(inventoryItemStacks);
-
 			} catch (Exception e) {
 				System.out.println("[ShareEnderChest] Error while loading inventory: " + e);
 				sharedInventory = new SharedInventory();
