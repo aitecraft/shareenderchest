@@ -62,6 +62,7 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 
 			} catch (Exception e) {
 				System.out.println("[ShareEnderChest] Error while loading inventory: " + e);
+				sharedInventory = new SharedInventory();
 			}
 		} else {
 			sharedInventory = new SharedInventory();
