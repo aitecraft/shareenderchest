@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
   "id": "shareenderchest",
-  "version": "1.6.0",
+  "version": "1.6.1",
 
   "name": "ShareEnderChest",
   "description": "Shift + Right-click any enderchest to use it as a Shared Ender Chest",
   "authors": [
     "kripesh101",
-    "eght"
+    "eght",
+    "ArkoSammy12"
   ],
   "contact": {
     "homepage": "https://aitecraft.glitch.me/",
