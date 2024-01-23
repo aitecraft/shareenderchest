@@ -2,6 +2,7 @@ package me.glitch.aitecraft.shareenderchest.mixin;
 
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -18,10 +19,13 @@ import net.minecraft.screen.slot.SlotActionType;
 
 @Mixin(ClientPlayerInteractionManager.class)
 public class ContainerMixin {
+
+    @Unique
     private static boolean isPressed(int keyCode, long handle) {
         return GLFW.glfwGetKey(handle, keyCode) == GLFW.GLFW_PRESS;
     }
 
+    @Unique
     private static boolean keysActive() {
         final long handle = MinecraftClient.getInstance().getWindow().getHandle();
         return 
