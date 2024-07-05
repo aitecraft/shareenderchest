@@ -1,14 +1,15 @@
 {
   "schemaVersion": 1,
   "id": "shareenderchest",
-  "version": "1.6.1",
+  "version": "1.6.3",
 
   "name": "ShareEnderChest",
   "description": "Shift + Right-click any enderchest to use it as a Shared Ender Chest",
   "authors": [
     "kripesh101",
     "eght",
-    "ArkoSammy12"
+    "ArkoSammy12",
+    "BRNSystems"
   ],
   "contact": {
     "homepage": "https://aitecraft.glitch.me/",
@@ -30,7 +31,7 @@
   "depends": {
     "fabricloader": ">=0.4.0",
     "fabric-api": "*",
-    "minecraft": ">=1.20.6",
+    "minecraft": ">=1.21",
     "java": ">=21"
   }
 }
