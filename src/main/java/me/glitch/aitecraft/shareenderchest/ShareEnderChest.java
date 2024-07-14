@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.UUID;
 
+import me.glitch.aitecraft.shareenderchest.util.SharedInvAccessType;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.api.ModInitializer;
@@ -96,31 +97,28 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
         openSharedInventory = new OpenSharedInventory(UUID.randomUUID());
 
         UseBlockCallback listenerUseBlock = (player, world, hand, hitResult) -> {
-
-            if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof EnderChestBlock) {
-                if (player.isSneaking() && !player.isSpectator()) {
-                    if (world.isClient()) return ActionResult.SUCCESS;
-                    openSharedEnderChest(player);
-                    return ActionResult.SUCCESS;
-
-                    //EnderChestBlockEntity blockEntity = (EnderChestBlockEntity) world.getBlockEntity(hitResult.getBlockPos());
-                    //sharedInventory.setBlockEntity(player, blockEntity);
-                }
+            if (!(world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof EnderChestBlock)) {
+                return ActionResult.PASS;
             }
+
+            if (world.isClient()) return ActionResult.SUCCESS;
+            if (openSharedEnderChest(player, SharedInvAccessType.BLOCK_USE)) {
+                return ActionResult.SUCCESS;
+            }
+            //EnderChestBlockEntity blockEntity = (EnderChestBlockEntity) world.getBlockEntity(hitResult.getBlockPos());
+            //sharedInventory.setBlockEntity(player, blockEntity);
             return ActionResult.PASS;
         };
 
         UseItemCallback.EVENT.register((player, world, hand) -> {
             ItemStack stack = player.getMainHandStack();
             if (world.isClient()) return TypedActionResult.pass(stack);
-
-            if (isEnderChest(stack) && world.getServer() != null) {
-                if ( /*player.isSneaking() &&*/ !player.isSpectator()) {
-                    openSharedEnderChest(player);
-                    return TypedActionResult.success(stack);
-                }
+            if (!isEnderChest(stack) || world.getServer() == null) {
+                return TypedActionResult.pass(stack);
             }
-
+            if (openSharedEnderChest(player, SharedInvAccessType.ITEM_USE)) {
+                return TypedActionResult.success(stack);
+            }
             return TypedActionResult.pass(stack);
         });
 
@@ -137,7 +135,7 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
                 context.player().networkHandler.sendPacket(new CloseScreenS2CPacket(context.player().currentScreenHandler.syncId));
                 context.player().closeHandledScreen();
             }
-            openSharedEnderChest(context.player());
+            openSharedEnderChest(context.player(), SharedInvAccessType.SLOT_USE);
         });
     }
 
@@ -147,9 +145,13 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
         ClientPlayNetworking.send(openSharedInventory);
     }
 
-    public static void openSharedEnderChest(PlayerEntity player) {
+    public static boolean openSharedEnderChest(PlayerEntity player, SharedInvAccessType sharedInvAccessType) {
+        if (!sharedInvAccessType.shouldPlayerUseItem(player)) {
+            return false;
+        }
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory((int_1, playerInventory, playerEntity) -> new GenericContainerScreenHandler(ScreenHandlerType.GENERIC_9X6, int_1, playerInventory, sharedInventory,
                 6), Text.of("Shared Ender Chest")));
+        return true;
     }
 
     public static boolean isEnderChest(ItemStack stack) {
