@@ -8,7 +8,8 @@ public class Config {
     public boolean requireSneak = true;
     public int inventoryRows = 6;
     public boolean openFromHand = true;
-    public boolean playOpenSound = false;
+    public boolean openFromInventory = true;
+    public boolean playOpenSound = true;
     public String inventoryName = "Shared Ender Chest";
 
     public ScreenHandlerType<GenericContainerScreenHandler> screenHandlerType() {

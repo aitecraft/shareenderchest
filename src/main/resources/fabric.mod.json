@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "shareenderchest",
-  "version": "1.6.3",
+  "version": "2.0.0",
 
   "name": "ShareEnderChest",
   "description": "Shift + Right-click any enderchest to use it as a Shared Ender Chest",
@@ -9,7 +9,8 @@
     "kripesh101",
     "eght",
     "ArkoSammy12",
-    "BRNSystems"
+    "BRNSystems",
+    "wshmkr"
   ],
   "contact": {
     "homepage": "https://aitecraft.glitch.me/",
@@ -23,15 +24,21 @@
   "entrypoints": {
     "main": [
       "me.glitch.aitecraft.shareenderchest.ShareEnderChest"
+    ],
+    "client": [
+      "me.glitch.aitecraft.shareenderchest.ShareEnderChestClient"
     ]
   },
   "mixins": [
-    "shareenderchest.mixins.json"
+    {
+      "config": "shareenderchest.client.mixins.json",
+      "environment": "client"
+    }
   ],
   "depends": {
     "fabricloader": ">=0.4.0",
     "fabric-api": "*",
-    "minecraft": ">=1.21",
+    "minecraft": ["1.21","1.21.1"],
     "java": ">=21"
   }
 }

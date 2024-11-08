@@ -5,18 +5,14 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.UUID;
 
 import me.glitch.aitecraft.shareenderchest.config.Config;
 import me.glitch.aitecraft.shareenderchest.config.ConfigManager;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.ServerStarted;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.ServerStopping;
@@ -34,7 +30,6 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
 import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.sound.SoundCategory;
@@ -51,8 +46,6 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 
     private long ticksUntilSave;
     private static Config config;
-
-    private static OpenSharedInventory openSharedInventory;
 
     public void onServerStarted(MinecraftServer server) {
         File inventoryFile = getFile(server);
@@ -101,7 +94,6 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
         config = ConfigManager.load();
         ticksUntilSave = config.autosaveSeconds * 20L;
         System.out.println("ShareEnderChest (Fabric) loaded");
-        openSharedInventory = new OpenSharedInventory(UUID.randomUUID());
 
         UseBlockCallback listenerUseBlock = (player, world, hand, hitResult) -> {
 
@@ -144,20 +136,16 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 
         PayloadTypeRegistry.playC2S().register(OpenSharedInventory.PACKET_ID, OpenSharedInventory.PACKET_CODEC);
 
-        // Packet Receiver
-        ServerPlayNetworking.registerGlobalReceiver(OpenSharedInventory.PACKET_ID, (payload, context) -> {
-            if (context.player().currentScreenHandler != context.player().playerScreenHandler) {
-                context.player().networkHandler.sendPacket(new CloseScreenS2CPacket(context.player().currentScreenHandler.syncId));
-                context.player().closeHandledScreen();
-            }
-            openSharedEnderChest(context.player());
-        });
-    }
-
-    // Packet Sender
-    @Environment(EnvType.CLIENT)
-    public static void sendOpenPacket() {
-        ClientPlayNetworking.send(openSharedInventory);
+        if (config.openFromInventory) {
+            // Packet Receiver
+            ServerPlayNetworking.registerGlobalReceiver(OpenSharedInventory.PACKET_ID, (payload, context) -> {
+                if (context.player().currentScreenHandler != context.player().playerScreenHandler) {
+                    context.player().networkHandler.sendPacket(new CloseScreenS2CPacket(context.player().currentScreenHandler.syncId));
+                    context.player().closeHandledScreen();
+                }
+                openSharedEnderChest(context.player());
+            });
+        }
     }
 
     public static void openSharedEnderChest(PlayerEntity player) {

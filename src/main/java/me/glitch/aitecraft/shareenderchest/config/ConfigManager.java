@@ -10,7 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class ConfigManager {
-    private static final File CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("share-ender-chest.json").toFile();
+    private static final File CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("shareenderchest.json").toFile();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static Config load() {

@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import me.glitch.aitecraft.shareenderchest.ShareEnderChestClient;
 import me.glitch.aitecraft.shareenderchest.ShareEnderChest;
 
 import org.spongepowered.asm.mixin.injection.At;
@@ -45,7 +46,7 @@ public class ContainerMixin {
                 if (player.currentScreenHandler.getCursorStack().isEmpty()) {
                     if (ShareEnderChest.isEnderChest(selectedSlot.getStack())) {
                         ci.cancel();
-                        ShareEnderChest.sendOpenPacket();
+                        ShareEnderChestClient.sendOpenPacket();
                     }
                 }
             }
