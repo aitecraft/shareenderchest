@@ -2,6 +2,8 @@ package me.glitch.aitecraft.shareenderchest.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import me.glitch.aitecraft.shareenderchest.ShareEnderChest;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
@@ -27,7 +29,7 @@ public class ConfigManager {
         try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
             GSON.toJson(config, writer);
         } catch (IOException e) {
-            System.out.println("Error saving config: " + e.getMessage());
+            ShareEnderChest.LOGGER.error("Error saving config: " + e.getMessage());
         }
     }
 }

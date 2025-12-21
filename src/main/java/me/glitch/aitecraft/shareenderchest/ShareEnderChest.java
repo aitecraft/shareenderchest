@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import me.glitch.aitecraft.shareenderchest.config.Config;
 import me.glitch.aitecraft.shareenderchest.config.ConfigManager;
 import net.fabricmc.api.ModInitializer;
@@ -28,6 +31,7 @@ import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
@@ -39,8 +43,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.EnderChestBlock;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 
 public class ShareEnderChest implements ModInitializer, ServerStopping, ServerStarted, EndTick {
+    public static final Logger LOGGER = LoggerFactory.getLogger("shareenderchest");
+    private static final ProblemReporter reporter = new ProblemReporter.ScopedCollector(LOGGER);
 
     private static SharedInventory sharedInventory;
 
@@ -54,10 +62,10 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
                  DataInputStream inventoryFileDataInput = new DataInputStream(inventoryFileInputStream)) {
                 CompoundTag nbt = NbtIo.readCompressed(inventoryFileDataInput, NbtAccounter.unlimitedHeap());
                 NonNullList<ItemStack> inventoryItemStacks = NonNullList.withSize(config.inventoryRows * 9, ItemStack.EMPTY);
-                ContainerHelper.loadAllItems(nbt, inventoryItemStacks, server.registryAccess());
+                ContainerHelper.loadAllItems(TagValueInput.create(reporter, server.registryAccess(), nbt), inventoryItemStacks);
                 sharedInventory = new SharedInventory(inventoryItemStacks);
             } catch (Exception e) {
-                System.out.println("[ShareEnderChest] Error while loading inventory: " + e);
+                LOGGER.error("Error while loading inventory: " + e);
                 sharedInventory = new SharedInventory(config.inventoryRows);
             }
         } else {
@@ -67,15 +75,16 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 
     public static void saveInventory(MinecraftServer server) {
         File inventoryFile = getFile(server);
-        CompoundTag nbt = new CompoundTag();
         NonNullList<ItemStack> inventoryItemStacks = NonNullList.withSize(config.inventoryRows * 9, ItemStack.EMPTY);
-        ContainerHelper.saveAllItems(nbt, sharedInventory.getList(inventoryItemStacks), server.registryAccess());
+        TagValueOutput output = TagValueOutput.createWithContext(reporter, server.registryAccess());
+        ContainerHelper.saveAllItems(output, sharedInventory.getList(inventoryItemStacks));
+        CompoundTag nbt = output.buildResult();
         try (FileOutputStream inventoryFileOutputStream = new FileOutputStream(inventoryFile);
              DataOutputStream inventoryFileDataOutput = new DataOutputStream(inventoryFileOutputStream)) {
             inventoryFile.createNewFile();
             NbtIo.writeCompressed(nbt, inventoryFileDataOutput);
         } catch (Exception e) {
-            System.out.println("[ShareEnderChest] Error while saving inventory: " + e);
+            LOGGER.error("Error while saving inventory: " + e);
         }
     }
 
@@ -93,7 +102,6 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
     public void onInitialize() {
         config = ConfigManager.load();
         ticksUntilSave = config.autosaveSeconds * 20L;
-        System.out.println("ShareEnderChest (Fabric) loaded");
 
         UseBlockCallback listenerUseBlock = (player, world, hand, hitResult) -> {
 
@@ -118,7 +126,7 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
                 
                 ItemStack stack = player.getMainHandItem();
                 if (isEnderChest(stack) && world.getServer() != null) {
-                    if ( /*player.isSneaking() &&*/ !player.isSpectator()) {
+                    if ( /*player.isCrouching() &&*/ !player.isSpectator()) {
                         playEnderChestOpenSound(world, player.blockPosition());
                         openSharedEnderChest(player);
                         return InteractionResult.SUCCESS;
