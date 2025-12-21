@@ -1,19 +1,18 @@
 package me.glitch.aitecraft.shareenderchest;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Uuids;
-
 import java.util.UUID;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 
-public record OpenSharedInventory(UUID opened) implements CustomPayload {
-    public static final Id<OpenSharedInventory> PACKET_ID = new Id<>(Identifier.of("shareenderchest", "open_shared_inventory"));
-    public static final PacketCodec<RegistryByteBuf, OpenSharedInventory> PACKET_CODEC = Uuids.PACKET_CODEC.xmap(OpenSharedInventory::new, OpenSharedInventory::opened).cast();
+public record OpenSharedInventory(UUID opened) implements CustomPacketPayload {
+    public static final Type<OpenSharedInventory> PACKET_ID = new Type<>(ResourceLocation.fromNamespaceAndPath("shareenderchest", "open_shared_inventory"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, OpenSharedInventory> PACKET_CODEC = UUIDUtil.STREAM_CODEC.map(OpenSharedInventory::new, OpenSharedInventory::opened).cast();
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return PACKET_ID;
     }
 

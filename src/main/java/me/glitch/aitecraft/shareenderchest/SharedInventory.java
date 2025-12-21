@@ -1,22 +1,21 @@
 package me.glitch.aitecraft.shareenderchest;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventories;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
-
 import java.util.Iterator;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.Container;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
-public class SharedInventory implements Inventory {
-    private final DefaultedList<ItemStack> stacks;
+public class SharedInventory implements Container {
+    private final NonNullList<ItemStack> stacks;
     //private static final HashMap<PlayerEntity, EnderChestBlockEntity> enderChests = new HashMap<PlayerEntity, EnderChestBlockEntity>();
 
     public SharedInventory(int inventoryRows) {
-        this.stacks = DefaultedList.ofSize(inventoryRows * 9, ItemStack.EMPTY);
+        this.stacks = NonNullList.withSize(inventoryRows * 9, ItemStack.EMPTY);
     }
 
-    public SharedInventory(DefaultedList<ItemStack> dl) {
+    public SharedInventory(NonNullList<ItemStack> dl) {
         this.stacks = dl;
     }
 
@@ -42,13 +41,13 @@ public class SharedInventory implements Inventory {
     }
     */
     
-    public DefaultedList<ItemStack> getList(DefaultedList<ItemStack> dl) {
+    public NonNullList<ItemStack> getList(NonNullList<ItemStack> dl) {
         dl = stacks;
         return dl;
     }
 
     @Override
-    public int size() {
+    public int getContainerSize() {
         return stacks.size();
     }
 
@@ -69,13 +68,13 @@ public class SharedInventory implements Inventory {
     }
 
     @Override
-    public ItemStack getStack(int i) {
+    public ItemStack getItem(int i) {
         return i >= stacks.size() ? ItemStack.EMPTY : stacks.get(i);
     }
 
     @Override
-    public ItemStack removeStack(int int_1, int int_2) {
-        ItemStack itemStack_1 = Inventories.splitStack(this.stacks, int_1, int_2);
+    public ItemStack removeItem(int int_1, int int_2) {
+        ItemStack itemStack_1 = ContainerHelper.removeItem(this.stacks, int_1, int_2);
         if (!itemStack_1.isEmpty()) {
             //this.container.onContentChanged(this);
         }
@@ -84,28 +83,28 @@ public class SharedInventory implements Inventory {
     }
 
     @Override
-    public ItemStack removeStack(int i) {
-        return Inventories.removeStack(this.stacks, i);
+    public ItemStack removeItemNoUpdate(int i) {
+        return ContainerHelper.takeItem(this.stacks, i);
     }
 
     @Override
-    public void setStack(int i, ItemStack itemStack) {
+    public void setItem(int i, ItemStack itemStack) {
         this.stacks.set(i, itemStack);
         //this.container.onContentChanged(this);
     }
 
     @Override
-    public void markDirty() {
+    public void setChanged() {
 
     }
 
     @Override
-    public boolean canPlayerUse(PlayerEntity playerEntity) {
+    public boolean stillValid(Player playerEntity) {
         return true;
     }
 
     @Override
-    public void clear() {
+    public void clearContent() {
         stacks.clear();
     }
 }

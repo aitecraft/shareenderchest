@@ -18,27 +18,27 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.ServerSt
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.ServerStopping;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.EndTick;
-
-import net.minecraft.block.EnderChestBlock;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventories;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtSizeTracker;
-import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.*;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.EnderChestBlock;
+import net.minecraft.world.level.storage.LevelResource;
 
 public class ShareEnderChest implements ModInitializer, ServerStopping, ServerStarted, EndTick {
 
@@ -52,9 +52,9 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
         if (inventoryFile.exists()) {
             try (FileInputStream inventoryFileInputStream = new FileInputStream(inventoryFile);
                  DataInputStream inventoryFileDataInput = new DataInputStream(inventoryFileInputStream)) {
-                NbtCompound nbt = NbtIo.readCompressed(inventoryFileDataInput, NbtSizeTracker.ofUnlimitedBytes());
-                DefaultedList<ItemStack> inventoryItemStacks = DefaultedList.ofSize(config.inventoryRows * 9, ItemStack.EMPTY);
-                Inventories.readNbt(nbt, inventoryItemStacks, server.getRegistryManager());
+                CompoundTag nbt = NbtIo.readCompressed(inventoryFileDataInput, NbtAccounter.unlimitedHeap());
+                NonNullList<ItemStack> inventoryItemStacks = NonNullList.withSize(config.inventoryRows * 9, ItemStack.EMPTY);
+                ContainerHelper.loadAllItems(nbt, inventoryItemStacks, server.registryAccess());
                 sharedInventory = new SharedInventory(inventoryItemStacks);
             } catch (Exception e) {
                 System.out.println("[ShareEnderChest] Error while loading inventory: " + e);
@@ -67,9 +67,9 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 
     public static void saveInventory(MinecraftServer server) {
         File inventoryFile = getFile(server);
-        NbtCompound nbt = new NbtCompound();
-        DefaultedList<ItemStack> inventoryItemStacks = DefaultedList.ofSize(config.inventoryRows * 9, ItemStack.EMPTY);
-        Inventories.writeNbt(nbt, sharedInventory.getList(inventoryItemStacks), server.getRegistryManager());
+        CompoundTag nbt = new CompoundTag();
+        NonNullList<ItemStack> inventoryItemStacks = NonNullList.withSize(config.inventoryRows * 9, ItemStack.EMPTY);
+        ContainerHelper.saveAllItems(nbt, sharedInventory.getList(inventoryItemStacks), server.registryAccess());
         try (FileOutputStream inventoryFileOutputStream = new FileOutputStream(inventoryFile);
              DataOutputStream inventoryFileDataOutput = new DataOutputStream(inventoryFileOutputStream)) {
             inventoryFile.createNewFile();
@@ -99,33 +99,33 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 
             if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof EnderChestBlock) {
                 // player.isSneaking matters only if requireSneak is true
-                if ((!config.requireSneak || player.isSneaking()) && !player.isSpectator()) {
-                    if (world.isClient()) return ActionResult.SUCCESS;
+                if ((!config.requireSneak || player.isShiftKeyDown()) && !player.isSpectator()) {
+                    if (world.isClientSide()) return InteractionResult.SUCCESS;
                     playEnderChestOpenSound(world, hitResult.getBlockPos());
                     openSharedEnderChest(player);
-                    return ActionResult.SUCCESS;
+                    return InteractionResult.SUCCESS;
 
                     //EnderChestBlockEntity blockEntity = (EnderChestBlockEntity) world.getBlockEntity(hitResult.getBlockPos());
                     //sharedInventory.setBlockEntity(player, blockEntity);
                 }
             }
-            return ActionResult.PASS;
+            return InteractionResult.PASS;
         };
 
         if (config.openFromHand) {
             UseItemCallback.EVENT.register((player, world, hand) -> {
-                if (world.isClient()) return ActionResult.PASS;
+                if (world.isClientSide()) return InteractionResult.PASS;
                 
-                ItemStack stack = player.getMainHandStack();
+                ItemStack stack = player.getMainHandItem();
                 if (isEnderChest(stack) && world.getServer() != null) {
                     if ( /*player.isSneaking() &&*/ !player.isSpectator()) {
-                        playEnderChestOpenSound(world, player.getBlockPos());
+                        playEnderChestOpenSound(world, player.blockPosition());
                         openSharedEnderChest(player);
-                        return ActionResult.SUCCESS;
+                        return InteractionResult.SUCCESS;
                     }
                 }
 
-                return ActionResult.PASS;
+                return InteractionResult.PASS;
             });
         }
 
@@ -139,23 +139,23 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
         if (config.openFromInventory) {
             // Packet Receiver
             ServerPlayNetworking.registerGlobalReceiver(OpenSharedInventory.PACKET_ID, (payload, context) -> {
-                if (context.player().currentScreenHandler != context.player().playerScreenHandler) {
-                    context.player().networkHandler.sendPacket(new CloseScreenS2CPacket(context.player().currentScreenHandler.syncId));
-                    context.player().closeHandledScreen();
+                if (context.player().containerMenu != context.player().inventoryMenu) {
+                    context.player().connection.send(new ClientboundContainerClosePacket(context.player().containerMenu.containerId));
+                    context.player().closeContainer();
                 }
                 openSharedEnderChest(context.player());
             });
         }
     }
 
-    public static void openSharedEnderChest(PlayerEntity player) {
-        player.openHandledScreen(new SimpleNamedScreenHandlerFactory((int_1, playerInventory, playerEntity) ->
-                new GenericContainerScreenHandler(config.screenHandlerType(), int_1, playerInventory, sharedInventory, config.inventoryRows), Text.of(config.inventoryName)));
+    public static void openSharedEnderChest(Player player) {
+        player.openMenu(new SimpleMenuProvider((int_1, playerInventory, playerEntity) ->
+                new ChestMenu(config.screenHandlerType(), int_1, playerInventory, sharedInventory, config.inventoryRows), Component.nullToEmpty(config.inventoryName)));
     }
 
-    public static void playEnderChestOpenSound(World world, BlockPos pos) {
+    public static void playEnderChestOpenSound(Level world, BlockPos pos) {
         if (config.playOpenSound)
-            world.playSound(null, pos, SoundEvents.BLOCK_ENDER_CHEST_OPEN, SoundCategory.BLOCKS, 0.5F, world.random.nextFloat() * 0.1F + 0.9F);
+            world.playSound(null, pos, SoundEvents.ENDER_CHEST_OPEN, SoundSource.BLOCKS, 0.5F, world.random.nextFloat() * 0.1F + 0.9F);
     }
 
     public static boolean isEnderChest(ItemStack stack) {
@@ -165,6 +165,6 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
     }
 
     private static File getFile(MinecraftServer server) {
-        return server.getSavePath(WorldSavePath.ROOT).resolve("shareenderchest.sav").toFile();
+        return server.getWorldPath(LevelResource.ROOT).resolve("shareenderchest.sav").toFile();
     }
 }
