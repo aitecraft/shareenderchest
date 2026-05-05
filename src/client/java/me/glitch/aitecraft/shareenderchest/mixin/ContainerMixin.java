@@ -16,7 +16,7 @@ import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 
 @Mixin(MultiPlayerGameMode.class)
 public class ContainerMixin {
@@ -28,7 +28,7 @@ public class ContainerMixin {
 
     @Unique
     private static boolean keysActive() {
-        final long handle = Minecraft.getInstance().getWindow().getWindow();
+        final long handle = Minecraft.getInstance().getWindow().handle();
         return
             isPressed(GLFW.GLFW_KEY_LEFT_CONTROL, handle) ||
             isPressed(GLFW.GLFW_KEY_RIGHT_CONTROL, handle) || 
@@ -36,11 +36,11 @@ public class ContainerMixin {
             isPressed(GLFW.GLFW_KEY_RIGHT_ALT, handle);
     }
 
-    @Inject(at = @At("HEAD"), method = "handleInventoryMouseClick", cancellable = true)
-    public void onclick(int syncId, int slotId, int button, ClickType actionType, Player player, CallbackInfo ci) {
-        if (actionType == ClickType.PICKUP && keysActive()) {
+    @Inject(at = @At("HEAD"), method = "handleContainerInput", cancellable = true)
+    public void onclick(int containerId, int slotNum, int buttonNum, ContainerInput containerInput, Player player, CallbackInfo ci) {
+        if (containerInput == ContainerInput.PICKUP && keysActive()) {
 
-            Slot selectedSlot = player.containerMenu.getSlot(slotId);
+            Slot selectedSlot = player.containerMenu.getSlot(slotNum);
             if (selectedSlot != null && selectedSlot.container instanceof Inventory) {
 
                 if (player.containerMenu.getCarried().isEmpty()) {

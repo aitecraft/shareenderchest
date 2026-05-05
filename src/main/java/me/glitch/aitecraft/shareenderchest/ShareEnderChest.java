@@ -142,7 +142,7 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
         ServerLifecycleEvents.SERVER_STOPPING.register(this);
         ServerTickEvents.END_SERVER_TICK.register(this);
 
-        PayloadTypeRegistry.playC2S().register(OpenSharedInventory.PACKET_ID, OpenSharedInventory.PACKET_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(OpenSharedInventory.PACKET_ID, OpenSharedInventory.PACKET_CODEC);
 
         if (config.openFromInventory) {
             // Packet Receiver
@@ -163,7 +163,7 @@ public class ShareEnderChest implements ModInitializer, ServerStopping, ServerSt
 
     public static void playEnderChestOpenSound(Level world, BlockPos pos) {
         if (config.playOpenSound)
-            world.playSound(null, pos, SoundEvents.ENDER_CHEST_OPEN, SoundSource.BLOCKS, 0.5F, world.random.nextFloat() * 0.1F + 0.9F);
+            world.playSound(null, pos, SoundEvents.ENDER_CHEST_OPEN, SoundSource.BLOCKS, 0.5F, world.getRandom().nextFloat() * 0.1F + 0.9F);
     }
 
     public static boolean isEnderChest(ItemStack stack) {
