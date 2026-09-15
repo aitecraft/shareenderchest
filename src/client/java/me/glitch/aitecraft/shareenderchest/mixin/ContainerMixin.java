@@ -1,39 +1,34 @@
 package me.glitch.aitecraft.shareenderchest.mixin;
 
-import org.lwjgl.glfw.GLFW;
+import java.nio.ByteBuffer;
+
+import org.lwjgl.sdl.SDLKeyboard;
+import org.lwjgl.sdl.SDLScancode;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import me.glitch.aitecraft.shareenderchest.ShareEnderChestClient;
-import me.glitch.aitecraft.shareenderchest.ShareEnderChest;
-
 import org.spongepowered.asm.mixin.injection.At;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.ContainerInput;
 
+import me.glitch.aitecraft.shareenderchest.ShareEnderChestClient;
+import me.glitch.aitecraft.shareenderchest.ShareEnderChest;
+
 @Mixin(MultiPlayerGameMode.class)
 public class ContainerMixin {
-
-    @Unique
-    private static boolean isPressed(int keyCode, long handle) {
-        return GLFW.glfwGetKey(handle, keyCode) == GLFW.GLFW_PRESS;
-    }
-
     @Unique
     private static boolean keysActive() {
-        final long handle = Minecraft.getInstance().getWindow().handle();
+        ByteBuffer state = SDLKeyboard.SDL_GetKeyboardState();
         return
-            isPressed(GLFW.GLFW_KEY_LEFT_CONTROL, handle) ||
-            isPressed(GLFW.GLFW_KEY_RIGHT_CONTROL, handle) || 
-            isPressed(GLFW.GLFW_KEY_LEFT_ALT, handle) ||
-            isPressed(GLFW.GLFW_KEY_RIGHT_ALT, handle);
+            state.get(SDLScancode.SDL_SCANCODE_RCTRL) > 0 ||
+            state.get(SDLScancode.SDL_SCANCODE_LCTRL) > 0 ||
+            state.get(SDLScancode.SDL_SCANCODE_LALT)  > 0 ||
+            state.get(SDLScancode.SDL_SCANCODE_RALT)  > 0 ;
     }
 
     @Inject(at = @At("HEAD"), method = "handleContainerInput", cancellable = true)
